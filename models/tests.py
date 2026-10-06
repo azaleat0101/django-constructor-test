@@ -38,6 +38,21 @@ class Test:
         """Количество вопросов в тесте."""
         return len(self.questions)
 
+    def update(self, title: str | None = None,
+               description: str | None = None) -> None:
+        """Обновить название и/или описание теста.
+
+        Параметр None означает «не менять».
+        """
+        if title is not None:
+            if not self.validate_title(title):
+                raise ValueError(
+                    "Название должно содержать от 3 до 100 символов."
+                )
+            self.title = title.strip()
+        if description is not None:
+            self.description = description.strip()
+
     def to_data(self) -> dict:
         return {
             "title": self.title,
@@ -60,7 +75,7 @@ class Test:
         return f"Тест «{self.title}», вопросов: {self.questions_count}"
 
 
-# ------- Функции работы с коллекцией тестов (остаются функциями) -------
+# ------- Функции работы с коллекцией тестов -------
 
 
 def add_test(
@@ -111,3 +126,62 @@ def show_tests(tests: list[Test]) -> None:
         return
     for test in tests:
         print(f"[{test.id}] {test}")
+
+
+def edit_test(
+    test: Test,
+    title: str | None = None,
+    description: str | None = None,
+) -> None:
+    """Отредактировать тест.
+
+    Параметр None означает «не менять соответствующее поле».
+    """
+    test.update(title=title, description=description)
+
+
+def delete_test(
+    tests: list[Test],
+    test_id: int,
+    attempts: list | None = None,
+) -> bool:
+    """Удалить тест по id.
+
+    Если передан список attempts, связанные попытки тоже удаляются,
+    чтобы не осталось «висячих» ссылок.
+    """
+    test = find_test_by_id(tests, test_id)
+    if test is None:
+        return False
+    if attempts is not None:
+        attempts[:] = [a for a in attempts if a.test.id != test_id]
+    tests.remove(test)
+    return True
+
+
+def delete_question(test: Test, index: int) -> bool:
+    """Удалить вопрос по индексу (начиная с 0)."""
+    if index < 0 or index >= test.questions_count:
+        return False
+    test.questions.pop(index)
+    return True
+
+def edit_question(
+    test: Test,
+    index: int,
+    text: str | None = None,
+    options: list[str] | None = None,
+    correct_answer: str | None = None,
+) -> None:
+    """Отредактировать вопрос по индексу.
+
+    Параметр None означает «не менять соответствующее поле».
+    Бросает IndexError, если индекс вне диапазона.
+    """
+    if index < 0 or index >= test.questions_count:
+        raise IndexError("Вопроса с таким номером нет.")
+    test.questions[index].update(
+        text=text,
+        options=options,
+        correct_answer=correct_answer,
+    )

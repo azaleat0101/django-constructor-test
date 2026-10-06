@@ -11,6 +11,10 @@ from models.attempts import (
 )
 from models.tests import (
     add_test,
+    delete_question,
+    delete_test,
+    edit_question,          # ← добавили
+    edit_test,
     filter_tests_by_question_count,
     find_test_by_id,
     find_tests,
@@ -365,3 +369,206 @@ def test_cancel_attempt_removes():
 def test_cancel_attempt_missing_returns_false():
     attempts: list[Attempt] = []
     assert not cancel_attempt(attempts, 99)
+
+# ---------- Редактирование и удаление тестов ----------
+
+
+def test_edit_test_title_and_description():
+    tests: list[Test] = []
+    test = add_test(tests, "Старое название", "Старое описание")
+    edit_test(test, title="Новое название", description="Новое описание")
+    assert test.title == "Новое название"
+    assert test.description == "Новое описание"
+
+
+def test_edit_test_only_title():
+    tests: list[Test] = []
+    test = add_test(tests, "Старое название", "Описание")
+    edit_test(test, title="Новое название")
+    assert test.title == "Новое название"
+    assert test.description == "Описание"
+
+
+def test_edit_test_only_description():
+    tests: list[Test] = []
+    test = add_test(tests, "Название", "Старое описание")
+    edit_test(test, description="Новое описание")
+    assert test.title == "Название"
+    assert test.description == "Новое описание"
+
+
+def test_edit_test_nothing_changes():
+    tests: list[Test] = []
+    test = add_test(tests, "Название", "Описание")
+    edit_test(test)
+    assert test.title == "Название"
+    assert test.description == "Описание"
+
+
+def test_edit_test_invalid_title_raises():
+    tests: list[Test] = []
+    test = add_test(tests, "Нормальное название")
+    try:
+        edit_test(test, title="ab")
+        assert False, "Ожидалось ValueError"
+    except ValueError:
+        assert True
+    assert test.title == "Нормальное название"
+
+
+def test_test_update_directly():
+    test = Test(1, "Старое", "Описание")
+    test.update(title="Новое")
+    assert test.title == "Новое"
+    assert test.description == "Описание"
+
+
+def test_delete_test():
+    tests: list[Test] = []
+    add_test(tests, "Тест 1")
+    t2 = add_test(tests, "Тест 2")
+    assert delete_test(tests, t2.id)
+    assert len(tests) == 1
+    assert tests[0].title == "Тест 1"
+
+
+def test_delete_test_missing_returns_false():
+    tests: list[Test] = []
+    add_test(tests, "Тест 1")
+    assert not delete_test(tests, 999)
+    assert len(tests) == 1
+
+
+def test_delete_test_cascades_attempts():
+    tests: list[Test] = []
+    test = add_test(tests, "Тест")
+    test.add_question(Question("Q", ["a", "b"], "a"))
+    user = User(1, "Иван")
+    attempts: list[Attempt] = []
+    create_attempt(attempts, test, user, 1)
+    create_attempt(attempts, test, user, 0)
+    assert len(attempts) == 2
+
+    assert delete_test(tests, test.id, attempts=attempts)
+    assert tests == []
+    assert attempts == []
+
+
+def test_delete_test_keeps_other_attempts():
+    tests: list[Test] = []
+    test_a = add_test(tests, "Тест A")
+    test_b = add_test(tests, "Тест B")
+    test_a.add_question(Question("Q", ["a", "b"], "a"))
+    test_b.add_question(Question("Q", ["a", "b"], "a"))
+    user = User(1, "Иван")
+    attempts: list[Attempt] = []
+    create_attempt(attempts, test_a, user, 1)
+    create_attempt(attempts, test_b, user, 1)
+
+    delete_test(tests, test_a.id, attempts=attempts)
+    assert len(tests) == 1
+    assert tests[0] is test_b
+    assert len(attempts) == 1
+    assert attempts[0].test is test_b
+
+
+def test_delete_question():
+    test = Test(1, "Тест")
+    test.add_question(Question("Q1", ["a", "b"], "a"))
+    test.add_question(Question("Q2", ["a", "b"], "a"))
+    assert test.questions_count == 2
+    assert delete_question(test, 0)
+    assert test.questions_count == 1
+    assert test.questions[0].text == "Q2"
+
+
+def test_delete_question_invalid_index():
+    test = Test(1, "Тест")
+    test.add_question(Question("Q1", ["a", "b"], "a"))
+    assert not delete_question(test, 5)
+    assert not delete_question(test, -1)
+    assert test.questions_count == 1
+
+# ---------- Редактирование вопросов ----------
+
+
+def test_question_update_text():
+    question = Question("Старый?", ["a", "b"], "a")
+    question.update(text="Новый?")
+    assert question.text == "Новый?"
+    assert question.options == ["a", "b"]
+    assert question.correct_answer == "a"
+
+
+def test_question_update_options():
+    question = Question("Q?", ["a", "b"], "a")
+    question.update(options=["x", "y", "z"])
+    # правильный ответ не менялся, но его нет в новых вариантах
+    # → валидация упадёт, поэтому проверим корректный кейс
+    question = Question("Q?", ["a", "b"], "a")
+    question.update(options=["a", "b", "c"])
+    assert question.options == ["a", "b", "c"]
+
+
+def test_question_update_correct_answer():
+    question = Question("Q?", ["a", "b"], "a")
+    question.update(correct_answer="b")
+    assert question.correct_answer == "b"
+
+
+def test_question_update_all_fields():
+    question = Question("Q?", ["a", "b"], "a")
+    question.update(text="Новый?", options=["x", "y"], correct_answer="y")
+    assert question.text == "Новый?"
+    assert question.options == ["x", "y"]
+    assert question.correct_answer == "y"
+
+
+def test_question_update_empty_text_raises():
+    question = Question("Q?", ["a", "b"], "a")
+    try:
+        question.update(text="   ")
+        assert False, "Ожидалось ValueError"
+    except ValueError:
+        assert True
+
+
+def test_question_update_wrong_correct_raises():
+    question = Question("Q?", ["a", "b"], "a")
+    try:
+        question.update(correct_answer="c")
+        assert False, "Ожидалось ValueError"
+    except ValueError:
+        assert True
+    # состояние не изменилось
+    assert question.correct_answer == "a"
+
+
+def test_edit_question_function():
+    test = Test(1, "Тест")
+    test.add_question(Question("Q1", ["a", "b"], "a"))
+    test.add_question(Question("Q2", ["c", "d"], "c"))
+
+    edit_question(test, 1, text="Q2-new", correct_answer="d")
+    assert test.questions[1].text == "Q2-new"
+    assert test.questions[1].correct_answer == "d"
+    assert test.questions[0].text == "Q1"
+
+
+def test_edit_question_invalid_index():
+    test = Test(1, "Тест")
+    test.add_question(Question("Q1", ["a", "b"], "a"))
+    try:
+        edit_question(test, 5, text="X")
+        assert False, "Ожидалось IndexError"
+    except IndexError:
+        assert True
+
+
+def test_edit_question_keeps_other_fields():
+    test = Test(1, "Тест")
+    test.add_question(Question("Q1", ["a", "b"], "a"))
+    edit_question(test, 0, text="Новый текст")
+    assert test.questions[0].text == "Новый текст"
+    assert test.questions[0].options == ["a", "b"]
+    assert test.questions[0].correct_answer == "a"

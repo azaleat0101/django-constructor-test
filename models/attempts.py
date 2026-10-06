@@ -1,62 +1,112 @@
-"""Прохождение тестов и подсчёт результатов."""
+"""Класс Attempt — попытка прохождения теста."""
 
 from datetime import datetime
 
-def check_answer(user_answer: str, correct_answer: str) -> bool:
-    """Сравнить ответ без учёта регистра и пробелов."""
-    return user_answer.strip().lower() == correct_answer.strip().lower()
+from .tests import Test, find_test_by_id
+from .users import User, find_user_by_id
 
 
-def get_booking_status(is_available: bool) -> str:
-    """Функция из ПР1 — статус (сохранена для преемственности)."""
-    if is_available:
-        return "Тест доступен для прохождения"
-    return "Тест уже пройден"
+class Attempt:
+    """Результат прохождения теста пользователем."""
+
+    def __init__(
+        self,
+        attempt_id: int,
+        test: Test,
+        user: User,
+        correct: int,
+        total: int,
+    ) -> None:
+        if total <= 0:
+            raise ValueError("Количество вопросов должно быть больше нуля.")
+        self.id = attempt_id
+        self.test = test
+        self.user = user
+        self.correct = correct
+        self.total = total
+        self.date = datetime.now().strftime("%d.%m.%Y %H:%M")
+        self.percent = round(correct / total * 100, 1)
+
+    @property
+    def grade(self) -> str:
+        """Оценка по проценту правильных ответов."""
+        if self.percent >= 90:
+            return "Отлично"
+        if self.percent >= 75:
+            return "Хорошо"
+        if self.percent >= 60:
+            return "Удовлетворительно"
+        return "Неудовлетворительно"
+
+    def to_data(self) -> dict:
+        """Преобразовать в словарь для JSON (хранятся id, не объекты)."""
+        return {
+            "id": self.id,
+            "test_id": self.test.id,
+            "user_id": self.user.id,
+            "date": self.date,
+            "correct": self.correct,
+            "total": self.total,
+            "percent": self.percent,
+        }
+
+    @classmethod
+    def from_data(
+        cls,
+        data: dict,
+        tests: list[Test],
+        users: list[User],
+    ) -> "Attempt | None":
+        """Создать Attempt, восстановив связи с Test и User.
+
+        Возвращает None, если связанные объекты не найдены.
+        """
+        test = find_test_by_id(tests, data["test_id"])
+        user = find_user_by_id(users, data["user_id"])
+        if test is None or user is None:
+            return None
+        attempt = cls(
+            attempt_id=data["id"],
+            test=test,
+            user=user,
+            correct=data["correct"],
+            total=data["total"],
+        )
+        attempt.date = data.get("date", attempt.date)
+        return attempt
+
+    def __str__(self) -> str:
+        return (
+            f"[{self.id}] {self.user.name} — тест «{self.test.title}», "
+            f"{self.percent}% ({self.grade}), {self.date}"
+        )
 
 
-def calculate_score(correct: int, total: int) -> dict:
-    """Вычислить процент и оценку."""
-    if total <= 0:
-        raise ValueError("Количество вопросов должно быть больше нуля.")
-    percent = round(correct / total * 100, 1)
-    if percent >= 90:
-        grade = "Отлично"
-    elif percent >= 75:
-        grade = "Хорошо"
-    elif percent >= 60:
-        grade = "Удовлетворительно"
-    else:
-        grade = "Неудовлетворительно"
-    return {
-        "correct": correct,
-        "total": total,
-        "percent": percent,
-        "grade": grade,
-    }
-
-
-def create_attempt(attempts: list[dict], test_id: int, user_name: str,
-                   correct: int, total: int) -> dict:
-    """Создать запись о попытке прохождения."""
-    result = calculate_score(correct, total)
-    attempt = {
-        "id": max((a["id"] for a in attempts), default=0) + 1,
-        "test_id": test_id,
-        "user_name": user_name.strip(),
-        "date": datetime.now().strftime("%d.%m.%Y %H:%M"),
-        "correct": result["correct"],
-        "total": result["total"],
-        "percent": result["percent"],
-        "grade": result["grade"],
-    }
+def create_attempt(
+    attempts: list[Attempt],
+    test: Test,
+    user: User,
+    correct: int,
+) -> Attempt:
+    """Создать попытку и добавить в коллекцию."""
+    new_id = max((a.id for a in attempts), default=0) + 1
+    attempt = Attempt(new_id, test, user, correct, test.questions_count)
     attempts.append(attempt)
     return attempt
 
 
-def cancel_attempt(attempts: list[dict], attempt_id: int) -> bool:
+def cancel_attempt(attempts: list[Attempt], attempt_id: int) -> bool:
     """Удалить попытку по id. Вернуть True, если удалено."""
     for index, attempt in enumerate(attempts):
-        if attempt["id"] == attempt_id:
+        if attempt.id == attempt_id:
             attempts.pop(index)
             return True
     return False
+
+
+def show_attempts(attempts: list[Attempt]) -> None:
+    if not attempts:
+        print("Попыток пока нет.")
+        return
+    for attempt in attempts:
+        print(attempt)
