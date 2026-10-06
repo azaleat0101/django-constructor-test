@@ -10,9 +10,6 @@ import os
 from typing import Any
 
 from models import Attempt, Test, User
-from models.attempts import Attempt as _Attempt  # для type hints
-from models.tests import Test as _Test
-from models.users import User as _User
 
 DATA_DIR = "data"
 TESTS_FILE = os.path.join(DATA_DIR, "tests.json")

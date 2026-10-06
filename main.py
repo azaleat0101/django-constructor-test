@@ -256,9 +256,9 @@ def menu() -> None:
         "9": lambda: search_users(users),
         "10": lambda: cancel_attempt_ui(attempts),
         "11": lambda: edit_test_ui(tests),
-        "12": lambda: show_test_questions(tests),      
-        "13": lambda: add_question_ui(tests),         
-        "14": lambda: edit_question_ui(tests),        
+        "12": lambda: show_test_questions(tests),
+        "13": lambda: add_question_ui(tests),
+        "14": lambda: edit_question_ui(tests),
         "15": lambda: delete_question_ui(tests),
         "16": lambda: delete_test_ui(tests, attempts),
     }

@@ -8,6 +8,8 @@ from .questions import Question
 class Test:
     """Тест, содержащий набор вопросов."""
 
+    __test__ = False
+
     def __init__(
         self,
         test_id: int,
@@ -165,6 +167,7 @@ def delete_question(test: Test, index: int) -> bool:
         return False
     test.questions.pop(index)
     return True
+
 
 def edit_question(
     test: Test,

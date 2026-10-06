@@ -501,13 +501,24 @@ def test_question_update_text():
 
 
 def test_question_update_options():
-    question = Question("Q?", ["a", "b"], "a")
-    question.update(options=["x", "y", "z"])
-    # правильный ответ не менялся, но его нет в новых вариантах
-    # → валидация упадёт, поэтому проверим корректный кейс
+    """Обновление вариантов, когда правильный ответ остаётся в списке."""
     question = Question("Q?", ["a", "b"], "a")
     question.update(options=["a", "b", "c"])
     assert question.options == ["a", "b", "c"]
+    assert question.correct_answer == "a"
+
+
+def test_question_update_options_removes_correct_raises():
+    """Если правильного ответа нет в новых вариантах — ValueError."""
+    question = Question("Q?", ["a", "b"], "a")
+    try:
+        question.update(options=["x", "y", "z"])
+        assert False, "Ожидалось ValueError"
+    except ValueError:
+        assert True
+    # состояние не изменилось
+    assert question.options == ["a", "b"]
+    assert question.correct_answer == "a"
 
 
 def test_question_update_correct_answer():
