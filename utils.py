@@ -1,4 +1,4 @@
-"""Вспомогательные функции безопасного ввода."""
+"""Безопасный ввод."""
 
 from datetime import date, datetime
 
@@ -28,4 +28,4 @@ def input_date(prompt: str) -> date:
         try:
             return datetime.strptime(raw, "%d.%m.%Y").date()
         except ValueError:
-            print("Ошибка: формат даты ДД.ММ.ГГГГ, например 15.09.2026.")
+            print("Ошибка: формат даты ДД.ММ.ГГГГ.")

@@ -5,29 +5,17 @@
     "questions": [
       {
         "text": "Какой тип у значения 42?",
-        "options": [
-          "int",
-          "str",
-          "bool"
-        ],
+        "options": ["int", "str", "bool"],
         "correct_answer": "int"
       },
       {
         "text": "Что выведет print(2 + 3 * 2)?",
-        "options": [
-          "7",
-          "10",
-          "12"
-        ],
+        "options": ["7", "10", "12"],
         "correct_answer": "10"
       },
       {
         "text": "Какой оператор используется для ветвления?",
-        "options": [
-          "for",
-          "if",
-          "def"
-        ],
+        "options": ["for", "if", "def"],
         "correct_answer": "if"
       }
     ]

@@ -1,160 +1,177 @@
-"""Конструктор тестов — точка входа и меню приложения."""
+"""Конструктор тестов — точка входа.
 
-from models.attempts import cancel_attempt, check_answer, create_attempt
-from storage import (
-    ATTEMPTS_FILE, TESTS_FILE, load_data, load_tests, save_data,
+main.py организует взаимодействие объектов Test, User, Attempt
+и не хранит данные предметной области в виде словарей.
+"""
+
+from models import Attempt, Question, Test, User
+from models.attempts import cancel_attempt, create_attempt, show_attempts
+from models.tests import (
+    add_test,
+    filter_tests_by_question_count,
+    find_test_by_id,
+    find_tests,
+    show_tests,
+    sort_tests_by_title,
 )
-from test_bank import (
-    add_question, add_test, filter_tests_by_question_count,
-    find_tests, sort_tests_by_title,
+from models.users import add_user, find_user, show_users
+from storage import (
+    load_attempts,
+    load_tests,
+    load_users,
+    save_attempts,
+    save_tests,
+    save_users,
 )
 from utils import input_int, input_non_empty
 
 
-def show_tests(tests: dict) -> None:
-    """Вывести список тестов."""
-    if not tests:
-        print("Список тестов пуст.")
-        return
-    for test_id, data in tests.items():
-        print(f"[{test_id}] {data['title']} — "
-              f"вопросов: {len(data['questions'])}")
-
-
-def show_attempts(attempts: list) -> None:
-    """Вывести список попыток."""
-    if not attempts:
-        print("Попыток пока нет.")
-        return
-    for attempt in attempts:
-        print(
-            f"[{attempt['id']}] Тест {attempt['test_id']}, "
-            f"{attempt['user_name']}, {attempt['date']}, "
-            f"{attempt['percent']}% — {attempt['grade']}"
-        )
-
-
-def pass_test(tests: dict, attempts: list) -> None:
-    """Провести пользователя по тесту."""
+def pass_test(
+    tests: list[Test],
+    users: list[User],
+    attempts: list[Attempt],
+) -> None:
+    """Пройти тест: создать Attempt и связать с Test и User."""
     test_id = input_int("ID теста: ")
-    if test_id not in tests:
+    test = find_test_by_id(tests, test_id)
+    if test is None:
         print("Тест не найден.")
         return
-    test = tests[test_id]
-    if not test["questions"]:
+    if test.questions_count == 0:
         print("В тесте нет вопросов.")
         return
-    user_name = input_non_empty("Ваше имя: ")
+
+    name = input_non_empty("Ваше имя: ")
+    user = next((u for u in users if u.name == name), None)
+    if user is None:
+        user = add_user(users, name)
+
     correct = 0
-    for number, question in enumerate(test["questions"], start=1):
-        print(f"\nВопрос {number}: {question['text']}")
-        print("Варианты: " + " / ".join(question["options"]))
+    for number, question in enumerate(test.questions, start=1):
+        print(f"\nВопрос {number}: {question.text}")
+        print("Варианты: " + " / ".join(question.options))
         answer = input_non_empty("Ответ: ")
-        if check_answer(answer, question["correct_answer"]):
+        if question.check_answer(answer):
             print("Верно!")
             correct += 1
         else:
-            print(
-                f"Неверно. Правильный ответ: "
-                f"{question['correct_answer']}"
-            )
-    attempt = create_attempt(
-        attempts, test_id, user_name, correct, len(test["questions"])
-    )
-    print(f"\nРезультат: {attempt['percent']}% — {attempt['grade']}")
+            print(f"Неверно. Правильный ответ: {question.correct_answer}")
+
+    attempt = create_attempt(attempts, test, user, correct)
+    print(f"\nРезультат: {attempt}")
 
 
-def create_test(tests: dict) -> None:
-    """Создать новый тест с вопросами."""
+def create_test(tests: list[Test]) -> None:
+    """Создать тест с вопросами."""
     title = input_non_empty("Название теста: ")
     description = input_non_empty("Описание: ")
-    test_id = add_test(tests, title, description)
-    print(f"Создан тест с id={test_id}")
+    try:
+        test = add_test(tests, title, description)
+    except ValueError as error:
+        print(f"Ошибка: {error}")
+        return
+    print(f"Создан тест [{test.id}] «{test.title}»")
+
     while input("Добавить вопрос? (y/n): ").strip().lower() == "y":
         text = input_non_empty("Текст вопроса: ")
-        options = []
-        for index in range(1, 4):
-            options.append(input_non_empty(f"Вариант {index}: "))
+        options = [input_non_empty(f"Вариант {i}: ") for i in range(1, 4)]
         correct = input_non_empty("Правильный ответ: ")
         try:
-            add_question(tests, test_id, text, options, correct)
+            test.add_question(Question(text, options, correct))
             print("Вопрос добавлен.")
-        except (ValueError, KeyError) as error:
+        except ValueError as error:
             print(f"Ошибка: {error}")
 
 
-def search_tests(tests: dict) -> None:
-    """Найти тесты по подстроке."""
+def search_tests(tests: list[Test]) -> None:
     query = input_non_empty("Поиск: ")
     results = find_tests(tests, query)
     if not results:
         print("Ничего не найдено.")
         return
-    for item in results:
-        print(f"[{item['id']}] {item['title']}")
+    for test in results:
+        print(f"[{test.id}] {test.title}")
 
 
-def show_sorted(tests: dict) -> None:
-    """Показать тесты, отсортированные по названию."""
-    for item in sort_tests_by_title(tests):
-        print(f"[{item['id']}] {item['title']}")
+def show_sorted(tests: list[Test]) -> None:
+    for test in sort_tests_by_title(tests):
+        print(f"[{test.id}] {test.title}")
 
 
-def show_filtered(tests: dict) -> None:
-    """Показать тесты с 3 и более вопросами."""
+def show_filtered(tests: list[Test]) -> None:
     found = False
-    for item in filter_tests_by_question_count(tests, 3):
-        print(
-            f"[{item['id']}] {item['title']} — "
-            f"вопросов: {len(item['questions'])}"
-        )
+    for test in filter_tests_by_question_count(tests, 3):
+        print(f"[{test.id}] {test.title} — вопросов: {test.questions_count}")
         found = True
     if not found:
-        print("Нет тестов с 3 и более вопросами.")
+        print("Нет тестов с 3+ вопросами.")
 
 
-def cancel_attempt_ui(attempts: list) -> None:
-    """Отменить попытку по id."""
-    attempt_id = input_int("ID попытки для отмены: ")
+def search_users(users: list[User]) -> None:
+    query = input_non_empty("Имя для поиска: ")
+    results = find_user(users, query)
+    if not results:
+        print("Пользователи не найдены.")
+        return
+    for user in results:
+        print(user)
+
+
+def cancel_attempt_ui(attempts: list[Attempt]) -> None:
+    attempt_id = input_int("ID попытки для удаления: ")
     if cancel_attempt(attempts, attempt_id):
         print("Попытка удалена.")
     else:
         print("Попытка с таким id не найдена.")
 
 
+def save_all(
+    tests: list[Test],
+    users: list[User],
+    attempts: list[Attempt],
+) -> None:
+    save_tests(tests)
+    save_users(users)
+    save_attempts(attempts)
+
+
 def menu() -> None:
     """Главное меню приложения."""
-    tests = load_tests(TESTS_FILE)
-    attempts = load_data(ATTEMPTS_FILE, [])
+    tests = load_tests()
+    users = load_users()
+    attempts = load_attempts(tests, users)
 
     actions = {
         "1": lambda: show_tests(tests),
-        "2": lambda: show_attempts(attempts),
-        "3": lambda: pass_test(tests, attempts),
-        "4": lambda: create_test(tests),
-        "5": lambda: search_tests(tests),
-        "6": lambda: show_sorted(tests),
-        "7": lambda: show_filtered(tests),
-        "8": lambda: cancel_attempt_ui(attempts),
+        "2": lambda: show_users(users),
+        "3": lambda: show_attempts(attempts),
+        "4": lambda: pass_test(tests, users, attempts),
+        "5": lambda: create_test(tests),
+        "6": lambda: search_tests(tests),
+        "7": lambda: show_sorted(tests),
+        "8": lambda: show_filtered(tests),
+        "9": lambda: search_users(users),
+        "10": lambda: cancel_attempt_ui(attempts),
     }
 
     while True:
         print("\n=== Конструктор тестов ===")
         print("1. Показать тесты")
-        print("2. Показать попытки")
-        print("3. Пройти тест")
-        print("4. Создать тест")
-        print("5. Найти тест по названию")
-        print("6. Сортировать тесты по названию")
-        print("7. Показать тесты с 3+ вопросами")
-        print("8. Отменить попытку")
+        print("2. Показать пользователей")
+        print("3. Показать попытки")
+        print("4. Пройти тест")
+        print("5. Создать тест")
+        print("6. Найти тест по названию")
+        print("7. Сортировать тесты по названию")
+        print("8. Показать тесты с 3+ вопросами")
+        print("9. Найти пользователя")
+        print("10. Удалить попытку")
         print("0. Выход")
-        choice = input("Выберите действие: ").strip()
+        choice = input("Действие: ").strip()
 
         if choice == "0":
-            save_data(TESTS_FILE, tests)
-            save_data(ATTEMPTS_FILE, attempts)
-            print("Данные сохранены. До встречи!")
+            save_all(tests, users, attempts)
+            print("Данные сохранены.")
             return
 
         action = actions.get(choice)
@@ -165,8 +182,7 @@ def menu() -> None:
                 action()
             except (ValueError, KeyError) as error:
                 print(f"Ошибка: {error}")
-            save_data(TESTS_FILE, tests)
-            save_data(ATTEMPTS_FILE, attempts)
+            save_all(tests, users, attempts)
 
 
 if __name__ == "__main__":
