@@ -1,6 +1,6 @@
 """Конструктор тестов — точка входа и меню приложения."""
 
-from attempts import cancel_attempt, check_answer, create_attempt
+from models.attempts import cancel_attempt, check_answer, create_attempt
 from storage import (
     ATTEMPTS_FILE, TESTS_FILE, load_data, load_tests, save_data,
 )
