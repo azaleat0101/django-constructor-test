@@ -110,3 +110,13 @@ def show_attempts(attempts: list[Attempt]) -> None:
         return
     for attempt in attempts:
         print(attempt)
+
+def find_attempt_by_id(
+    attempts: list[Attempt],
+    attempt_id: int,
+) -> Attempt | None:
+    """Найти попытку по идентификатору."""
+    for attempt in attempts:
+        if attempt.id == attempt_id:
+            return attempt
+    return None
