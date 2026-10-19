@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+
+{% block title %}
+    {% if attempt %}Попытка №{{ attempt.id }} — Конструктор тестов
+    {% else %}Попытка не найдена — Конструктор тестов{% endif %}
+{% endblock %}
+
+{% block content %}
+{% if attempt %}
+    <div class="card">
+        <div class="card-body">
+            <h1 class="card-title">Попытка №{{ attempt.id }}</h1>
+            <p class="card-text">
+                <strong>Пользователь:</strong> {{ attempt.user.name }}
+            </p>
+            <p class="card-text">
+                <strong>Тест:</strong> {{ attempt.test.title }}
+            </p>
+            <p class="card-text">
+                <strong>Дата:</strong> {{ attempt.date }}
+            </p>
+            <p class="card-text">
+                <strong>Правильных ответов:</strong>
+                {{ attempt.correct }} из {{ attempt.total }}
+            </p>
+            <p class="card-text">
+                <strong>Результат:</strong>
+                {% include "attempts/includes/attempt_status.html" %}
+            </p>
+        </div>
+    </div>
+{% else %}
+    <h1 class="text-danger">Попытка не найдена</h1>
+    <p>Попытка с указанным идентификатором отсутствует.</p>
+{% endif %}
+
+<a href="{% url 'attempts:list' %}"
+   class="btn btn-outline-secondary mt-3">
+    ← к списку попыток
+</a>
+{% endblock %}

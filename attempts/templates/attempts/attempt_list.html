@@ -1,0 +1,24 @@
+{% extends "base.html" %}
+
+{% block title %}Попытки — Конструктор тестов{% endblock %}
+
+{% block content %}
+<h1>Попытки</h1>
+
+<p class="text-muted">
+    Всего попыток: {{ attempts|length }}
+</p>
+
+<ul class="list-group">
+    {% for attempt in attempts %}
+        <li class="list-group-item d-flex justify-content-between align-items-center">
+            <a href="{% url 'attempts:detail' attempt.id %}">
+                {{ attempt.user.name }} — {{ attempt.test.title }}
+            </a>
+            {% include "attempts/includes/attempt_status.html" %}
+        </li>
+    {% empty %}
+        <li class="list-group-item">Попыток пока нет.</li>
+    {% endfor %}
+</ul>
+{% endblock %}

@@ -1,0 +1,49 @@
+{% extends "base.html" %}
+
+{% block title %}
+    {% if test %}{{ test.title }} — Конструктор тестов
+    {% else %}Тест не найден — Конструктор тестов{% endif %}
+{% endblock %}
+
+{% block content %}
+{% if test %}
+    <div class="card mb-3">
+        <div class="card-body">
+            <h1 class="card-title">{{ test.title }}</h1>
+            <p class="card-text">{{ test.description }}</p>
+            <span class="badge bg-primary">
+                Вопросов: {{ test.questions_count }}
+            </span>
+        </div>
+    </div>
+
+    {% for question in test.questions %}
+        <div class="card mb-3">
+            <div class="card-body">
+                <h5 class="card-title">
+                    Вопрос {{ forloop.counter }}: {{ question.text }}
+                </h5>
+                <ul class="list-group list-group-flush">
+                    {% for option in question.options %}
+                        <li class="list-group-item">{{ option }}</li>
+                    {% endfor %}
+                </ul>
+                <p class="card-text mt-2 text-success">
+                    <strong>Правильный ответ:</strong>
+                    {{ question.correct_answer }}
+                </p>
+            </div>
+        </div>
+    {% empty %}
+        <p class="text-muted">В этом тесте пока нет вопросов.</p>
+    {% endfor %}
+{% else %}
+    <h1 class="text-danger">Тест не найден</h1>
+    <p>Тест с указанным идентификатором отсутствует.</p>
+{% endif %}
+
+<a href="{% url 'quizzes:list' %}"
+   class="btn btn-outline-secondary mt-3">
+    ← к списку тестов
+</a>
+{% endblock %}

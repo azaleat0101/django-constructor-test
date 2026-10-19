@@ -1,0 +1,19 @@
+{% extends "base.html" %}
+
+{% block title %}Тесты — Конструктор тестов{% endblock %}
+
+{% block content %}
+<h1>Тесты</h1>
+
+<p class="text-muted">
+    Всего тестов: {{ tests|length }}
+</p>
+
+<div class="row">
+    {% for test in tests %}
+        {% include "quizzes/includes/quiz_card.html" %}
+    {% empty %}
+        <p class="text-muted">Тестов пока нет.</p>
+    {% endfor %}
+</div>
+{% endblock %}

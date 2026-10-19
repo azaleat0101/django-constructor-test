@@ -1,0 +1,9 @@
+{% if attempt.percent >= 60 %}
+    <span class="badge bg-success attempt-status-active">
+        {{ attempt.percent }}% — {{ attempt.grade }}
+    </span>
+{% else %}
+    <span class="badge bg-danger attempt-status-active">
+        {{ attempt.percent }}% — {{ attempt.grade }}
+    </span>
+{% endif %}

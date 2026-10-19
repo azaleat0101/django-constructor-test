@@ -1,0 +1,11 @@
+{% extends "base.html" %}
+
+{% block title %}Главная — Конструктор тестов{% endblock %}
+
+{% block content %}
+<h1 class="display-4">Конструктор тестов</h1>
+<p class="lead">Приложение для создания и прохождения тестов.</p>
+<p>Основные разделы:</p>
+<a href="{% url 'quizzes:list' %}" class="btn btn-primary me-2">Тесты</a>
+<a href="{% url 'attempts:list' %}" class="btn btn-secondary">Попытки</a>
+{% endblock %}
