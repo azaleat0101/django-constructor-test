@@ -111,6 +111,7 @@ def show_attempts(attempts: list[Attempt]) -> None:
     for attempt in attempts:
         print(attempt)
 
+
 def find_attempt_by_id(
     attempts: list[Attempt],
     attempt_id: int,
