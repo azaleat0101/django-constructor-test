@@ -1,0 +1,88 @@
+{% extends "base.html" %}
+
+{% block title %}Статистика — Конструктор тестов{% endblock %}
+
+{% block content %}
+<h1>Статистика</h1>
+
+<div class="row mb-4">
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-body">
+                <h5 class="card-title">Всего тестов</h5>
+                <p class="display-6">{{ tests_count }}</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-body">
+                <h5 class="card-title">Всего попыток</h5>
+                <p class="display-6">{{ attempts_stats.attempts_count }}</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-body">
+                <h5 class="card-title">Средний балл</h5>
+                <p class="display-6">
+                    {{ attempts_stats.average_percent|floatformat:1 }}%
+                </p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<h2>По тестам</h2>
+<table class="table table-striped">
+    <thead>
+        <tr>
+            <th>Тест</th>
+            <th>Попыток</th>
+            <th>Средний балл</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for item in tests_stats %}
+        <tr>
+            <td>{{ item.title }}</td>
+            <td>{{ item.attempts_count }}</td>
+            <td>
+                {% if item.average_percent %}
+                    {{ item.average_percent|floatformat:1 }}%
+                {% else %}
+                    —
+                {% endif %}
+            </td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+
+<h2>По пользователям</h2>
+<table class="table table-striped">
+    <thead>
+        <tr>
+            <th>Пользователь</th>
+            <th>Попыток</th>
+            <th>Средний балл</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for item in users_stats %}
+        <tr>
+            <td>{{ item.name }}</td>
+            <td>{{ item.attempts_count }}</td>
+            <td>
+                {% if item.average_percent %}
+                    {{ item.average_percent|floatformat:1 }}%
+                {% else %}
+                    —
+                {% endif %}
+            </td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+{% endblock %}

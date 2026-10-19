@@ -5,15 +5,24 @@
 {% block content %}
 <h1>Тесты</h1>
 
+<form method="get" class="mb-3">
+    <div class="input-group">
+        <input type="text" name="q" class="form-control"
+               placeholder="Поиск по названию"
+               value="{{ query }}">
+        <button type="submit" class="btn btn-primary">Найти</button>
+    </div>
+</form>
+
 <p class="text-muted">
-    Всего тестов: {{ tests|length }}
+    Найдено тестов: {{ tests|length }}
 </p>
 
 <div class="row">
     {% for test in tests %}
         {% include "quizzes/includes/quiz_card.html" %}
     {% empty %}
-        <p class="text-muted">Тестов пока нет.</p>
+        <p class="text-muted">Тестов не найдено.</p>
     {% endfor %}
 </div>
 {% endblock %}

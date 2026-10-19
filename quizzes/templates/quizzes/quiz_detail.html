@@ -12,12 +12,12 @@
             <h1 class="card-title">{{ test.title }}</h1>
             <p class="card-text">{{ test.description }}</p>
             <span class="badge bg-primary">
-                Вопросов: {{ test.questions_count }}
+                Вопросов: {{ questions|length }}
             </span>
         </div>
     </div>
 
-    {% for question in test.questions %}
+    {% for question in questions %}
         <div class="card mb-3">
             <div class="card-body">
                 <h5 class="card-title">
