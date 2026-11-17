@@ -111,7 +111,6 @@
 - Git
 
 
-
 Загрузка выполняется функциями storage.py: load_tests(),
 load_users(), load_attempts(). Объекты создаются через
 from_data() классов предметной области.
@@ -131,6 +130,52 @@ Django ORM и база данных на текущем этапе не испо
 - Собственные статические файлы: CSS, JavaScript, изображение (ПР6).
 - Автоматизированные тесты (76 тестов).
 - Проверка качества кода flake8
+
+## Django ORM и модели (ПР9)
+
+Слой доступа к данным переведён с `sqlite3` (ПР7) на Django ORM.
+Классы `models/` из ПР3 сохранены для консольной версии (`main.py`),
+Django-модели описаны отдельно.
+
+### Модели
+
+- `quizzes.models.Test` — тест: `title`, `description`.
+- `quizzes.models.Question` — вопрос: `test` (FK), `text`, `options` (JSONField), `correct_answer`.
+- `attempts.models.User` — пользователь: `name`.
+- `attempts.models.Attempt` — попытка: `test` (FK), `user` (FK), `date`, `correct`, `total`, `percent`.
+
+Связи:
+- `Question.test` → `ForeignKey(Test, on_delete=CASCADE, related_name="questions")`;
+- `Attempt.test` → `ForeignKey(Test, on_delete=PROTECT, related_name="attempts")`;
+- `Attempt.user` → `ForeignKey(User, on_delete=PROTECT, related_name="attempts")`.
+
+`PROTECT` сохраняет историю попыток: тест или пользователь, на которые есть
+попытки, не могут быть удалены через ORM.
+
+### Миграции
+
+```bash
+python manage.py makemigrations
+python manage.py migrate
+```
+
+### Перенос данных из ПР7
+
+```bash
+python -m db.import_sqlite_to_orm
+```
+
+### Реализованные ORM-приёмы
+
+- all(), get(), count();
+- filter() по одному и нескольким условиям, filter() по связанному полю;
+- exclude();
+- поиск через icontains, мультипоиск через Q() | Q();
+- order_by() по одному и нескольким полям, по полю связанной модели;
+- select_related("user", "test") — оптимизация запросов списка и детальной;
+- aggregate(Count, Avg, Max, Min);
+- annotate(Count("questions")), annotate(Count("attempts"), Avg(...));
+- Paginator для постраничного вывода попыток.
 
 ## Запуск
 

@@ -2,7 +2,7 @@
 
 {% block title %}
     {% if attempt %}Попытка №{{ attempt.id }} — Конструктор тестов
-    {% else %}Попытка не найдена — Конструктор тестов{% endif %}
+    {% else %}Попытка не найдена{% endif %}
 {% endblock %}
 
 {% block content %}
@@ -10,21 +10,15 @@
     <div class="card">
         <div class="card-body">
             <h1 class="card-title">Попытка №{{ attempt.id }}</h1>
-            <p class="card-text">
-                <strong>Пользователь:</strong> {{ attempt.user_name }}
+            <p><strong>Пользователь:</strong> {{ attempt.user.name }}</p>
+            <p><strong>Тест:</strong> {{ attempt.test.title }}</p>
+            <p><strong>Дата:</strong>
+                {{ attempt.date|date:"d.m.Y H:i" }}
             </p>
-            <p class="card-text">
-                <strong>Тест:</strong> {{ attempt.test_title }}
-            </p>
-            <p class="card-text">
-                <strong>Дата:</strong> {{ attempt.date }}
-            </p>
-            <p class="card-text">
-                <strong>Правильных ответов:</strong>
+            <p><strong>Правильных ответов:</strong>
                 {{ attempt.correct }} из {{ attempt.total }}
             </p>
-            <p class="card-text">
-                <strong>Результат:</strong>
+            <p><strong>Результат:</strong>
                 {% include "attempts/includes/attempt_status.html" %}
             </p>
         </div>
@@ -35,7 +29,5 @@
 {% endif %}
 
 <a href="{% url 'attempts:list' %}"
-   class="btn btn-outline-secondary mt-3">
-    ← к списку попыток
-</a>
+   class="btn btn-outline-secondary mt-3">← к списку попыток</a>
 {% endblock %}
