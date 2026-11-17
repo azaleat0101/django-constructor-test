@@ -1,95 +1,56 @@
-"""View-функции для работы с тестами (через SQL)."""
+"""View-функции приложения quizzes на Django ORM."""
 
-import json
-import sqlite3
-from typing import Any
+from django.db.models import Count
+from django.shortcuts import get_object_or_404, render
 
-from django.http import HttpRequest, HttpResponse
-from django.shortcuts import render
-
-from db.database import get_connection
+from .models import Test
 
 
-LIST_TESTS_SQL: str = """
-SELECT
-    tests.id,
-    tests.titel,
-    tests.description,
-    COUNT(questions.id) AS questions_count
-FROM tests
-LEFT JOIN questions ON questions.test_id = tests.id
-GROUP BY tests.id, tests.title, tests.description
-ORDER BY tests.title;
-"""
-
-SEARCH_TESTS_SQL: str = """
-SELECT id, title, description
-FROM tests
-WHERE LOWER(title) LIKE LOWER(?)
-ORDER BY title;
-"""
-
-GET_TEST_SQL: str = "SELECT id, title, description FROM tests WHERE id = ?;"
-
-GET_QUESTIONS_SQL: str = """
-SELECT id, text, options, correct_answer
-FROM questions
-WHERE test_id = ?
-ORDER BY id;
-"""
+SORT_OPTIONS = {
+    "title": "title",
+    "-title": "-title",
+    "questions": "question_count",
+    "-questions": "-question_count",
+}
 
 
-def _decode_question(row: sqlite3.Row) -> dict[str, Any]:
-    """Преобразовать строку БД в словарь с распакованными options."""
-    return {
-        "id": row["id"],
-        "text": row["text"],
-        "options": json.loads(row["options"]),
-        "correct_answer": row["correct_answer"],
-    }
+def quizzes(request):
+    """Список тестов: поиск, фильтр по числу вопросов, сортировка."""
+    query = request.GET.get("q", "").strip()
+    min_questions = request.GET.get("min_q", "").strip()
+    sort = request.GET.get("sort", "title")
 
+    queryset = Test.objects.annotate(question_count=Count("questions"))
 
-def quizzes(request: HttpRequest) -> HttpResponse:
-    """Список тестов или поиск по названию."""
-    query: str = request.GET.get("q", "").strip()
-    tests: list[sqlite3.Row]
+    if query:
+        queryset = queryset.filter(title__icontains=query)
 
-    conn = get_connection()
-    try:
-        if query:
-            tests = conn.execute(
-                SEARCH_TESTS_SQL, (f"%{query}%",)
-            ).fetchall()
-        else:
-            tests = conn.execute(LIST_TESTS_SQL).fetchall()
-    finally:
-        conn.close()
+    if min_questions:
+        try:
+            queryset = queryset.filter(question_count__gte=int(min_questions))
+        except ValueError:
+            min_questions = ""
+
+    queryset = queryset.order_by(SORT_OPTIONS.get(sort, "title"))
 
     return render(
         request,
         "quizzes/quiz_list.html",
-        {"tests": tests, "query": query},
+        {
+            "tests": queryset,
+            "query": query,
+            "min_questions": min_questions,
+            "sort": sort,
+        },
     )
 
 
-def quiz_detail(request: HttpRequest, test_id: int) -> HttpResponse:
-    """Страница теста со списком вопросов."""
-    conn = get_connection()
-    test: sqlite3.Row | None
-    questions: list[dict[str, Any]] = []
-
-    try:
-        test = conn.execute(GET_TEST_SQL, (test_id,)).fetchone()
-        if test is not None:
-            rows: list[sqlite3.Row] = conn.execute(
-                GET_QUESTIONS_SQL, (test_id,)
-            ).fetchall()
-            questions = [_decode_question(row) for row in rows]
-    finally:
-        conn.close()
-
-    context: dict[str, Any] = {"test": test, "questions": questions}
-    status: int = 200 if test is not None else 404
+def quiz_detail(request, test_id):
+    """Страница теста с вопросами. 404 при отсутствии."""
+    test = get_object_or_404(Test, pk=test_id)
+    questions = test.questions.all()
     return render(
-        request, "quizzes/quiz_detail.html", context, status=status
+        request,
+        "quizzes/quiz_detail.html",
+        {"test": test, "questions": questions},
     )
