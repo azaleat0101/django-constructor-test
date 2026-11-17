@@ -1,16 +1,19 @@
 """View-функции для работы с тестами (через SQL)."""
 
 import json
+import sqlite3
+from typing import Any
 
+from django.http import HttpRequest, HttpResponse
 from django.shortcuts import render
 
 from db.database import get_connection
 
 
-LIST_TESTS_SQL = """
+LIST_TESTS_SQL: str = """
 SELECT
     tests.id,
-    tests.title,
+    tests.titel,
     tests.description,
     COUNT(questions.id) AS questions_count
 FROM tests
@@ -19,16 +22,16 @@ GROUP BY tests.id, tests.title, tests.description
 ORDER BY tests.title;
 """
 
-SEARCH_TESTS_SQL = """
+SEARCH_TESTS_SQL: str = """
 SELECT id, title, description
 FROM tests
 WHERE LOWER(title) LIKE LOWER(?)
 ORDER BY title;
 """
 
-GET_TEST_SQL = "SELECT id, title, description FROM tests WHERE id = ?;"
+GET_TEST_SQL: str = "SELECT id, title, description FROM tests WHERE id = ?;"
 
-GET_QUESTIONS_SQL = """
+GET_QUESTIONS_SQL: str = """
 SELECT id, text, options, correct_answer
 FROM questions
 WHERE test_id = ?
@@ -36,7 +39,8 @@ ORDER BY id;
 """
 
 
-def _decode_question(row):
+def _decode_question(row: sqlite3.Row) -> dict[str, Any]:
+    """Преобразовать строку БД в словарь с распакованными options."""
     return {
         "id": row["id"],
         "text": row["text"],
@@ -45,9 +49,11 @@ def _decode_question(row):
     }
 
 
-def quizzes(request):
+def quizzes(request: HttpRequest) -> HttpResponse:
     """Список тестов или поиск по названию."""
-    query = request.GET.get("q", "").strip()
+    query: str = request.GET.get("q", "").strip()
+    tests: list[sqlite3.Row]
+
     conn = get_connection()
     try:
         if query:
@@ -66,20 +72,24 @@ def quizzes(request):
     )
 
 
-def quiz_detail(request, test_id):
+def quiz_detail(request: HttpRequest, test_id: int) -> HttpResponse:
     """Страница теста со списком вопросов."""
     conn = get_connection()
+    test: sqlite3.Row | None
+    questions: list[dict[str, Any]] = []
+
     try:
         test = conn.execute(GET_TEST_SQL, (test_id,)).fetchone()
-        questions = []
         if test is not None:
-            rows = conn.execute(GET_QUESTIONS_SQL, (test_id,)).fetchall()
+            rows: list[sqlite3.Row] = conn.execute(
+                GET_QUESTIONS_SQL, (test_id,)
+            ).fetchall()
             questions = [_decode_question(row) for row in rows]
     finally:
         conn.close()
 
-    context = {"test": test, "questions": questions}
-    status = 200 if test is not None else 404
+    context: dict[str, Any] = {"test": test, "questions": questions}
+    status: int = 200 if test is not None else 404
     return render(
         request, "quizzes/quiz_detail.html", context, status=status
     )

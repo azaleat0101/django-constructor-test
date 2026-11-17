@@ -1,13 +1,17 @@
 """View-функции главной страницы и страницы статистики."""
 
+import sqlite3
+from typing import Any
+
+from django.http import HttpRequest, HttpResponse
 from django.shortcuts import render
 
 from db.database import get_connection
 
 
-TESTS_COUNT_SQL = "SELECT COUNT(*) AS tests_count FROM tests;"
+TESTS_COUNT_SQL: str = "SELECT COUNT(*) AS tests_count FROM tests;"
 
-ATTEMPTS_STATS_SQL = """
+ATTEMPTS_STATS_SQL: str = """
 SELECT
     COUNT(*) AS attempts_count,
     COALESCE(AVG(percent), 0) AS average_percent,
@@ -16,7 +20,7 @@ SELECT
 FROM attempts;
 """
 
-TESTS_STATS_SQL = """
+TESTS_STATS_SQL: str = """
 SELECT
     tests.id,
     tests.title,
@@ -28,7 +32,7 @@ GROUP BY tests.id, tests.title
 ORDER BY attempts_count DESC, tests.title;
 """
 
-USERS_STATS_SQL = """
+USERS_STATS_SQL: str = """
 SELECT
     users.id,
     users.name,
@@ -41,14 +45,19 @@ ORDER BY attempts_count DESC, users.name;
 """
 
 
-def index(request):
+def index(request: HttpRequest) -> HttpResponse:
     """Главная страница."""
     return render(request, "homepage/index.html")
 
 
-def statistics(request):
+def statistics(request: HttpRequest) -> HttpResponse:
     """Страница статистики по данным проекта."""
-    conn = get_connection()
+    conn: sqlite3.Connection = get_connection()
+    tests_count: int
+    attempts_stats: sqlite3.Row | None
+    tests_stats: list[sqlite3.Row]
+    users_stats: list[sqlite3.Row]
+
     try:
         tests_count = conn.execute(TESTS_COUNT_SQL).fetchone()["tests_count"]
         attempts_stats = conn.execute(ATTEMPTS_STATS_SQL).fetchone()
@@ -57,13 +66,10 @@ def statistics(request):
     finally:
         conn.close()
 
-    return render(
-        request,
-        "homepage/statistics.html",
-        {
-            "tests_count": tests_count,
-            "attempts_stats": attempts_stats,
-            "tests_stats": tests_stats,
-            "users_stats": users_stats,
-        },
-    )
+    context: dict[str, Any] = {
+        "tests_count": tests_count,
+        "attempts_stats": attempts_stats,
+        "tests_stats": tests_stats,
+        "users_stats": users_stats,
+    }
+    return render(request, "homepage/statistics.html", context)
