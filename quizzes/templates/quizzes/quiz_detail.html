@@ -2,7 +2,7 @@
 
 {% block title %}
     {% if test %}{{ test.title }} — Конструктор тестов
-    {% else %}Тест не найден — Конструктор тестов{% endif %}
+    {% else %}Тест не найден{% endif %}
 {% endblock %}
 
 {% block content %}
@@ -10,7 +10,9 @@
     <div class="card mb-3">
         <div class="card-body">
             <h1 class="card-title">{{ test.title }}</h1>
-            <p class="card-text">{{ test.description }}</p>
+            <p class="card-text">
+                {{ test.description|default:"Без описания" }}
+            </p>
             <span class="badge bg-primary">
                 Вопросов: {{ questions|length }}
             </span>
@@ -43,7 +45,5 @@
 {% endif %}
 
 <a href="{% url 'quizzes:list' %}"
-   class="btn btn-outline-secondary mt-3">
-    ← к списку тестов
-</a>
+   class="btn btn-outline-secondary mt-3">← к списку тестов</a>
 {% endblock %}
